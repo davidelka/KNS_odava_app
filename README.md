@@ -1,3 +1,8 @@
+this app build quick and dirty 
+feel free to offer changes and improvment
+in fact - this is the rewsopn that it is here..
+thank you
+
 ## Knesset OData URL Builder: Setup and Usage Guide
 
 This guide will walk you through setting up and running the Knesset OData URL Builder application. This tool allows you to construct OData URLs for the Knesset ParliamentInfo service, fetch data using a Python backend (to bypass browser security restrictions), and save that data as JSON, CSV, or both.
