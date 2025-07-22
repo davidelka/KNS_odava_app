@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Knesset OData URL Builder</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <!-- Link to the external CSS file -->
+        <link rel="stylesheet" href="./style.css" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+    <body class="flex items-center justify-center min-h-screen bg-gray-100 p-5">
+        <div class="container">
+            <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">
+                Knesset OData URL Builder
+            </h1>
+
+            <!-- Base URL -->
+            <div class="form-group">
+                <label for="baseUrl">Base URL:</label>
+                <input
+                    type="text"
+                    id="baseUrl"
+                    value="https://knesset.gov.il/OdataV4/ParliamentInfo/"
+                    readonly
+                    class="bg-gray-50 cursor-not-allowed"
+                />
+            </div>
+
+            <!-- Table Selection -->
+            <div class="form-group">
+                <label for="tableSelect">Select Table:</label>
+                <select
+                    id="tableSelect"
+                    class="focus:ring-blue-500 focus:border-blue-500"
+                >
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+            </div>
+
+            <!-- Filter Builder Section -->
+            <div class="form-group">
+                <label>Build Filters:</label>
+                <div id="filterClausesContainer">
+                    <!-- Filter clauses will be added here -->
+                </div>
+                <button id="addFilterClauseBtn" class="btn add-filter-btn">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+                    Add Filter Clause
+                </button>
+            </div>
+
+            <!-- Order By Section -->
+            <div class="form-group">
+                <label>Order By:</label>
+                <div class="flex gap-4 items-center">
+                    <select
+                        id="orderByFieldSelect"
+                        class="flex-grow p-2 border rounded-md"
+                    >
+                        <option value="">-- Select Field to Order By --</option>
+                    </select>
+                    <select
+                        id="orderByDirectionSelect"
+                        class="p-2 border rounded-md"
+                    >
+                        <option value="asc">Ascending</option>
+                        <option value="desc">Descending</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex space-x-4 mb-6 mt-4">
+                <button id="generateUrlBtn" class="btn btn-primary flex-grow">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+                    Generate URL
+                </button>
+                <button id="copyUrlBtn" class="btn btn-secondary flex-grow">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                    >
+                        <path
+                            d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"
+                        />
+                        <path
+                            d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2H6zM5 9a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"
+                        />
+                    </svg>
+                    Copy URL
+                </button>
+            </div>
+
+            <!-- Generated URL Output -->
+            <div class="form-group">
+                <label for="outputUrl">Generated URL:</label>
+                <div id="outputUrl" class="output-box"></div>
+            </div>
+
+            <!-- Fetch and Save Data Section -->
+            <div class="form-group">
+                <label for="filenameInput"
+                    >Filename Base (e.g., `my_data`):</label
+                >
+                <input
+                    type="text"
+                    id="filenameInput"
+                    value="knesset_odata_data"
+                    class="focus:ring-blue-500 focus:border-blue-500"
+                />
+
+                <label for="saveFormatSelect" class="mt-4">Save Format:</label>
+                <select
+                    id="saveFormatSelect"
+                    class="focus:ring-blue-500 focus:border-blue-500"
+                >
+                    <option value="json">JSON (.json)</option>
+                    <option value="csv">CSV (.csv)</option>
+                    <option value="both">Both (JSON & CSV)</option>
+                </select>
+
+                <button
+                    id="fetchAndSaveBtn"
+                    class="btn btn-primary mt-4 w-full"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+                    Fetch & Save Data (on server)
+                </button>
+                <p class="text-sm text-gray-600 mt-2">
+                    Note: Data will be saved to a file(s) on the server running
+                    this application. Check the server's directory.
+                </p>
+            </div>
+
+            <!-- Message Box for Copy Confirmation -->
+            <div id="messageBox" class="message-box"></div>
+        </div>
+
+        <script type="module">
+            // Import data from odataConfig.js
+            import { TABLES, TABLE_FIELDS_METADATA } from "./odataConfig.js";
+
+            // Define the base URL for the OData service
+            const BASE_URL = "https://knesset.gov.il/OdataV4/ParliamentInfo/";
+            // Define the endpoint for the Python backend
+            const BACKEND_URL = "http://127.0.0.1:5000/fetch_and_save_data"; // Assuming Flask runs on port 5000
+
+            // Get references to DOM elements
+            const tableSelect = document.getElementById("tableSelect");
+            const filterClausesContainer = document.getElementById(
+                "filterClausesContainer",
+            );
+            const addFilterClauseBtn =
+                document.getElementById("addFilterClauseBtn");
+            const orderByFieldSelect =
+                document.getElementById("orderByFieldSelect");
+            const orderByDirectionSelect = document.getElementById(
+                "orderByDirectionSelect",
+            );
+            const generateUrlBtn = document.getElementById("generateUrlBtn");
+            const copyUrlBtn = document.getElementById("copyUrlBtn");
+            const outputUrl = document.getElementById("outputUrl");
+            const filenameInput = document.getElementById("filenameInput");
+            const saveFormatSelect =
+                document.getElementById("saveFormatSelect"); // New element
+            const fetchAndSaveBtn = document.getElementById("fetchAndSaveBtn");
+            const messageBox = document.getElementById("messageBox");
+
+            /**
+             * Populates the table selection dropdown with available table names.
+             */
+            function populateTableSelect() {
+                TABLES.forEach((table) => {
+                    const option = document.createElement("option");
+                    option.value = table;
+                    option.textContent = table;
+                    tableSelect.appendChild(option);
+                });
+            }
+
+            /**
+             * Populates the field dropdown for a given filter clause or order by based on the selected table.
+             * @param {HTMLSelectElement} fieldSelectElement - The select element for fields.
+             * @param {string} tableName - The name of the currently selected table.
+             */
+            function populateFieldSelect(fieldSelectElement, tableName) {
+                fieldSelectElement.innerHTML =
+                    '<option value="">-- Select Field --</option>'; // Clear existing options
+                const fields = TABLE_FIELDS_METADATA[tableName] || [];
+                fields.forEach((field) => {
+                    const option = document.createElement("option");
+                    option.value = field.name;
+                    option.textContent = field.name;
+                    fieldSelectElement.appendChild(option);
+                });
+            }
+
+            /**
+             * Adds a new filter clause row to the UI.
+             */
+            function addFilterClause() {
+                const clauseDiv = document.createElement("div");
+                clauseDiv.className = "filter-clause";
+
+                const logicalOperatorSelect = document.createElement("select");
+                logicalOperatorSelect.className =
+                    "logical-operator-select p-2 border rounded-md";
+                logicalOperatorSelect.innerHTML = `
+                <option value="and">AND</option>
+                <option value="or">OR</option>
+            `;
+                // Only show logical operator if there are existing clauses
+                if (filterClausesContainer.children.length === 0) {
+                    logicalOperatorSelect.style.display = "none";
+                }
+
+                const fieldSelect = document.createElement("select");
+                fieldSelect.className = "p-2 border rounded-md";
+                populateFieldSelect(fieldSelect, tableSelect.value); // Populate initially based on current table
+
+                const operatorSelect = document.createElement("select");
+                operatorSelect.className = "p-2 border rounded-md";
+                operatorSelect.innerHTML = `
+                <option value="eq">eq (equal)</option>
+                <option value="ne">ne (not equal)</option>
+                <option value="gt">gt (greater than)</option>
+                <option value="lt">lt (less than)</option>
+                <option value="ge">ge (greater or equal)</option>
+                <option value="le">le (less or equal)</option>
+                <option value="contains">contains (string)</option>
+                <option value="startswith">startswith (string)</option>
+                <option value="endswith">endswith (string)</option>
+            `;
+
+                const valueInput = document.createElement("input");
+                valueInput.type = "text";
+                valueInput.placeholder = "Value";
+                valueInput.className = "p-2 border rounded-md";
+
+                const removeBtn = document.createElement("button");
+                removeBtn.className = "remove-btn";
+                removeBtn.textContent = "Remove";
+                removeBtn.addEventListener("click", () => {
+                    clauseDiv.remove();
+                    generateUrl(); // Regenerate URL after removal
+                    // Hide logical operator of the first remaining clause if it's now the only one
+                    if (filterClausesContainer.children.length > 0) {
+                        filterClausesContainer.children[0].querySelector(
+                            ".logical-operator-select",
+                        ).style.display = "none";
+                    }
+                });
+
+                clauseDiv.appendChild(logicalOperatorSelect);
+                clauseDiv.appendChild(fieldSelect);
+                clauseDiv.appendChild(operatorSelect);
+                clauseDiv.appendChild(valueInput);
+                clauseDiv.appendChild(removeBtn);
+
+                filterClausesContainer.appendChild(clauseDiv);
+
+                // Add event listeners to trigger URL generation on input/change
+                fieldSelect.addEventListener("change", generateUrl);
+                operatorSelect.addEventListener("change", generateUrl);
+                valueInput.addEventListener("input", generateUrl);
+                logicalOperatorSelect.addEventListener("change", generateUrl);
+
+                // If this is not the first clause, ensure the previous one's logical operator is visible
+                if (filterClausesContainer.children.length > 1) {
+                    const previousClause =
+                        filterClausesContainer.children[
+                            filterClausesContainer.children.length - 2
+                        ];
+                    previousClause.querySelector(
+                        ".logical-operator-select",
+                    ).style.display = "block";
+                }
+
+                generateUrl(); // Generate URL immediately after adding a clause
+            }
+
+            /**
+             * Helper to build the filter string from all clauses.
+             * @returns {string} The OData filter string.
+             */
+            function buildFilterString() {
+                let filterString = "";
+                const clauses = [];
+
+                Array.from(filterClausesContainer.children).forEach(
+                    (clauseDiv, index) => {
+                        const logicalOperator = clauseDiv.querySelector(
+                            ".logical-operator-select",
+                        ).value;
+                        const field = clauseDiv.querySelector(
+                            "select:nth-of-type(2)",
+                        ).value; // Second select is field
+                        const operator = clauseDiv.querySelector(
+                            "select:nth-of-type(3)",
+                        ).value; // Third select is operator
+                        const value = clauseDiv
+                            .querySelector('input[type="text"]')
+                            .value.trim();
+
+                        if (field && value) {
+                            let formattedValue = value;
+                            const fieldType = TABLE_FIELDS_METADATA[
+                                tableSelect.value
+                            ]
+                                ?.find((f) => f.name === field)
+                                ?.type?.toLowerCase();
+
+                            if (
+                                ["contains", "startswith", "endswith"].includes(
+                                    operator,
+                                ) ||
+                                fieldType === "string" ||
+                                fieldType === "nstring"
+                            ) {
+                                formattedValue = `'${value.replace(/'/g, "''")}'`; // Escape single quotes
+                            } else if (
+                                fieldType === "datetime" ||
+                                fieldType === "datetimeoffset"
+                            ) {
+                                if (
+                                    !value.match(
+                                        /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(Z)?)?$/,
+                                    )
+                                ) {
+                                    formattedValue = `'${value.replace(/'/g, "''")}'`;
+                                }
+                            } else if (
+                                fieldType === "bit" ||
+                                fieldType === "boolean"
+                            ) {
+                                formattedValue =
+                                    value.toLowerCase() === "true"
+                                        ? "true"
+                                        : "false";
+                            }
+
+                            let clause = "";
+                            if (
+                                ["contains", "startswith", "endswith"].includes(
+                                    operator,
+                                )
+                            ) {
+                                clause = `${operator}(${field}, ${formattedValue})`;
+                            } else {
+                                clause = `${field} ${operator} ${formattedValue}`;
+                            }
+
+                            clauses.push({
+                                logicalOperator:
+                                    index > 0 ? logicalOperator : "", // First clause doesn't need a leading operator
+                                clause: clause,
+                            });
+                        }
+                    },
+                );
+
+                if (clauses.length > 0) {
+                    filterString = clauses
+                        .map((c, i) => {
+                            if (i === 0) return c.clause;
+                            return `${c.logicalOperator} ${c.clause}`;
+                        })
+                        .join(" ");
+                }
+                return filterString;
+            }
+
+            /**
+             * Helper to build the orderby string.
+             * @returns {string} The OData orderby string.
+             */
+            function buildOrderByString() {
+                const orderByField = orderByFieldSelect.value;
+                const orderByDirection = orderByDirectionSelect.value;
+
+                if (orderByField) {
+                    return `${orderByField} ${orderByDirection}`;
+                }
+                return "";
+            }
+
+            /**
+             * Generates the complete OData URL.
+             * @returns {string} The generated OData URL.
+             */
+            function generateUrl() {
+                const selectedTable = tableSelect.value;
+                let url = `${BASE_URL}${selectedTable}`;
+                const queryParams = [];
+
+                // 1. Generate Filter String
+                const filterString = buildFilterString();
+                if (filterString) {
+                    // Encode and then replace specific OData keywords for correct URL structure
+                    let encodedFilter = encodeURIComponent(filterString);
+                    encodedFilter = encodedFilter
+                        .replace(/%20eq%20/g, " eq ")
+                        .replace(/%20ne%20/g, " ne ")
+                        .replace(/%20gt%20/g, " gt ")
+                        .replace(/%20lt%20/g, " lt ")
+                        .replace(/%20ge%20/g, " ge ")
+                        .replace(/%20le%20/g, " le ")
+                        .replace(/%20and%20/g, " and ")
+                        .replace(/%20or%20/g, " or ")
+                        .replace(/%20contains%20/g, " contains ")
+                        .replace(/%20startswith%20/g, " startswith ")
+                        .replace(/%20endswith%20/g, " endswith ");
+                    queryParams.push(`$filter=${encodedFilter}`);
+                }
+
+                // 2. Generate OrderBy String
+                const orderByString = buildOrderByString();
+                if (orderByString) {
+                    // Encode and then replace specific OData keywords for correct URL structure
+                    let encodedOrderBy = encodeURIComponent(orderByString);
+                    encodedOrderBy = encodedOrderBy
+                        .replace(/%20asc/g, " asc")
+                        .replace(/%20desc/g, " desc");
+                    queryParams.push(`$orderby=${encodedOrderBy}`);
+                }
+
+                // Combine all query parameters
+                if (queryParams.length > 0) {
+                    url += `?${queryParams.join("&")}`;
+                }
+
+                outputUrl.textContent = url;
+            }
+
+            /**
+             * Displays a message in the message box.
+             * @param {string} message - The message to display.
+             * @param {string} type - The type of message (e.g., 'success', 'error').
+             */
+            function showMessage(message, type) {
+                messageBox.textContent = message;
+                messageBox.className = `message-box ${type}`; // Apply type class
+                messageBox.style.display = "block";
+                setTimeout(() => {
+                    messageBox.style.display = "none";
+                }, 3000); // Hide after 3 seconds
+            }
+
+            /**
+             * Sends the generated URL to the Python backend to fetch and save data.
+             */
+            async function sendUrlToBackendAndSave() {
+                const urlToFetch = outputUrl.textContent;
+                const filenameBase = filenameInput.value.trim(); // Get base filename
+                const saveFormat = saveFormatSelect.value; // Get selected save format
+
+                if (!urlToFetch) {
+                    showMessage("Please generate a URL first.", "error");
+                    return;
+                }
+
+                showMessage(
+                    "Sending request to server to fetch data...",
+                    "info",
+                );
+
+                try {
+                    const response = await fetch(BACKEND_URL, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            url: urlToFetch,
+                            filename: filenameBase, // Send base filename
+                            save_format: saveFormat, // Send save format
+                        }),
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showMessage(`Success: ${result.message}`, "success");
+                    } else {
+                        showMessage(
+                            `Error: ${result.message || "Unknown error from server."}`,
+                            "error",
+                        );
+                    }
+                } catch (error) {
+                    console.error("Error communicating with backend:", error);
+                    showMessage(
+                        `Network error: Could not connect to the Python server. Make sure it's running at ${BACKEND_URL}.`,
+                        "error",
+                    );
+                }
+            }
+
+            // Event Listeners
+            generateUrlBtn.addEventListener("click", generateUrl);
+
+            copyUrlBtn.addEventListener("click", () => {
+                const urlToCopy = outputUrl.textContent;
+                if (urlToCopy) {
+                    // Use document.execCommand('copy') for clipboard operations in iframe environments
+                    const tempInput = document.createElement("textarea");
+                    tempInput.value = urlToCopy;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    try {
+                        document.execCommand("copy");
+                        showMessage("URL copied to clipboard!", "success");
+                    } catch (err) {
+                        console.error("Failed to copy URL: ", err);
+                        showMessage(
+                            "Failed to copy URL. Please copy manually.",
+                            "error",
+                        );
+                    } finally {
+                        document.body.removeChild(tempInput);
+                    }
+                } else {
+                    showMessage("No URL to copy. Generate one first!", "error");
+                }
+            });
+
+            addFilterClauseBtn.addEventListener("click", addFilterClause);
+            fetchAndSaveBtn.addEventListener("click", sendUrlToBackendAndSave);
+
+            // Event listener for table selection change
+            tableSelect.addEventListener("change", () => {
+                // Clear existing filter clauses
+                filterClausesContainer.innerHTML = "";
+                // Add a new empty filter clause for the newly selected table
+                addFilterClause();
+                // Update order by field select
+                populateFieldSelect(orderByFieldSelect, tableSelect.value);
+                generateUrl(); // Regenerate URL
+            });
+
+            // Event listeners for order by changes
+            orderByFieldSelect.addEventListener("change", generateUrl);
+            orderByDirectionSelect.addEventListener("change", generateUrl);
+
+            // Initialize the UI on page load
+            window.onload = () => {
+                populateTableSelect();
+                addFilterClause(); // Add the first filter clause on load
+                populateFieldSelect(orderByFieldSelect, tableSelect.value); // Populate order by fields
+                generateUrl(); // Generate initial URL on load
+            };
+        </script>
+    </body>
+</html>
