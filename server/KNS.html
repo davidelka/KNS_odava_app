@@ -5,20 +5,20 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Knesset OData URL Builder</title>
         <script src="https://cdn.tailwindcss.com"></script>
-        <!-- Link to the external CSS file -->
         <link rel="stylesheet" href="./style.css" />
         <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
             rel="stylesheet"
         />
     </head>
-    <body class="flex items-center justify-center min-h-screen bg-gray-100 p-5">
+    <body
+        class="flex items-center justify-content-center min-h-screen bg-gray-100 p-5"
+    >
         <div class="container">
             <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">
                 Knesset OData URL Builder
             </h1>
 
-            <!-- Base URL -->
             <div class="form-group">
                 <label for="baseUrl">Base URL:</label>
                 <input
@@ -30,23 +30,17 @@
                 />
             </div>
 
-            <!-- Table Selection -->
             <div class="form-group">
                 <label for="tableSelect">Select Table:</label>
                 <select
                     id="tableSelect"
                     class="focus:ring-blue-500 focus:border-blue-500"
-                >
-                    <!-- Options will be populated by JavaScript -->
-                </select>
+                ></select>
             </div>
 
-            <!-- Filter Builder Section -->
             <div class="form-group">
                 <label>Build Filters:</label>
-                <div id="filterClausesContainer">
-                    <!-- Filter clauses will be added here -->
-                </div>
+                <div id="filterClausesContainer"></div>
                 <button id="addFilterClauseBtn" class="btn add-filter-btn">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -64,7 +58,6 @@
                 </button>
             </div>
 
-            <!-- Order By Section -->
             <div class="form-group">
                 <label>Order By:</label>
                 <div class="flex gap-4 items-center">
@@ -84,7 +77,6 @@
                 </div>
             </div>
 
-            <!-- Buttons -->
             <div class="flex space-x-4 mb-6 mt-4">
                 <button id="generateUrlBtn" class="btn btn-primary flex-grow">
                     <svg
@@ -119,13 +111,14 @@
                 </button>
             </div>
 
-            <!-- Generated URL Output -->
             <div class="form-group">
-                <label for="outputUrl">Generated URL:</label>
-                <div id="outputUrl" class="output-box"></div>
+                <label for="outputUrl">Generated URL (Editable):</label>
+                <textarea
+                    id="outputUrl"
+                    class="output-box w-full h-24 p-3 border rounded-md resize-y"
+                ></textarea>
             </div>
 
-            <!-- Fetch and Save Data Section -->
             <div class="form-group">
                 <label for="filenameInput"
                     >Filename Base (e.g., `my_data`):</label
@@ -171,7 +164,6 @@
                 </p>
             </div>
 
-            <!-- Message Box for Copy Confirmation -->
             <div id="messageBox" class="message-box"></div>
         </div>
 
@@ -198,12 +190,18 @@
             );
             const generateUrlBtn = document.getElementById("generateUrlBtn");
             const copyUrlBtn = document.getElementById("copyUrlBtn");
-            const outputUrl = document.getElementById("outputUrl");
+            const outputUrl = document.getElementById("outputUrl"); // Now a textarea
             const filenameInput = document.getElementById("filenameInput");
             const saveFormatSelect =
-                document.getElementById("saveFormatSelect"); // New element
+                document.getElementById("saveFormatSelect");
             const fetchAndSaveBtn = document.getElementById("fetchAndSaveBtn");
             const messageBox = document.getElementById("messageBox");
+
+            // Regex to check for OData datetime format (YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DD)
+            const ODATA_DATETIME_REGEX =
+                /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(Z)?)?$/;
+            // Operators that typically do not require quotes for non-string types (like numbers, booleans, dates)
+            const COMPARISON_OPERATORS = ["eq", "ne", "gt", "lt", "ge", "le"];
 
             /**
              * Populates the table selection dropdown with available table names.
@@ -343,31 +341,31 @@
 
                         if (field && value) {
                             let formattedValue = value;
-                            const fieldType = TABLE_FIELDS_METADATA[
+                            const fieldMetadata = TABLE_FIELDS_METADATA[
                                 tableSelect.value
-                            ]
-                                ?.find((f) => f.name === field)
-                                ?.type?.toLowerCase();
+                            ]?.find((f) => f.name === field);
+                            const fieldType = fieldMetadata
+                                ? fieldMetadata.type.toLowerCase()
+                                : "string"; // Default to string if type unknown
+                            const isComparisonOperator =
+                                COMPARISON_OPERATORS.includes(operator);
 
+                            // Handle quoting based on type and operator
                             if (
-                                ["contains", "startswith", "endswith"].includes(
-                                    operator,
-                                ) ||
                                 fieldType === "string" ||
                                 fieldType === "nstring"
                             ) {
-                                formattedValue = `'${value.replace(/'/g, "''")}'`; // Escape single quotes
+                                formattedValue = `'${value.replace(/'/g, "''")}'`; // Always quote explicit string types
                             } else if (
                                 fieldType === "datetime" ||
                                 fieldType === "datetimeoffset"
                             ) {
-                                if (
-                                    !value.match(
-                                        /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(Z)?)?$/,
-                                    )
-                                ) {
+                                if (!isComparisonOperator) {
+                                    // If it's a date type but not a comparison operator (e.g., 'contains'), treat as string and quote
                                     formattedValue = `'${value.replace(/'/g, "''")}'`;
                                 }
+                                // Else (it's a date type AND a comparison operator), leave as is (no quotes)
+                                // The URL encoding of the whole filter string will handle characters like '+'
                             } else if (
                                 fieldType === "bit" ||
                                 fieldType === "boolean"
@@ -375,8 +373,9 @@
                                 formattedValue =
                                     value.toLowerCase() === "true"
                                         ? "true"
-                                        : "false";
+                                        : "false"; // 'true'/'false' not quoted
                             }
+                            // For numeric types, formattedValue remains 'value' (no quotes needed)
 
                             let clause = "";
                             if (
@@ -391,7 +390,7 @@
 
                             clauses.push({
                                 logicalOperator:
-                                    index > 0 ? logicalOperator : "", // First clause doesn't need a leading operator
+                                    index > 0 ? logicalOperator : "",
                                 clause: clause,
                             });
                         }
@@ -421,6 +420,52 @@
                     return `${orderByField} ${orderByDirection}`;
                 }
                 return "";
+            }
+
+            /**
+             * Generates a unique and self-explanatory default filename.
+             * @returns {string} The suggested filename base.
+             */
+            function generateDefaultFilename() {
+                const table = tableSelect.value;
+                let filename = table;
+
+                const filterClauses = Array.from(
+                    filterClausesContainer.children,
+                )
+                    .map((clauseDiv) => {
+                        const field = clauseDiv.querySelector(
+                            "select:nth-of-type(2)",
+                        ).value;
+                        const value = clauseDiv
+                            .querySelector('input[type="text"]')
+                            .value.trim();
+                        return field && value ? `${field}_${value}` : "";
+                    })
+                    .filter(Boolean)
+                    .join("_");
+
+                const orderByClause = orderByFieldSelect.value
+                    ? `${orderByFieldSelect.value}_${orderByDirectionSelect.value}`
+                    : "";
+
+                if (filterClauses) {
+                    filename += `_filtered_by_${filterClauses}`;
+                }
+                if (orderByClause) {
+                    filename += `_ordered_by_${orderByClause}`;
+                }
+
+                // Sanitize filename: replace spaces and special chars with underscores, truncate if too long
+                filename = filename
+                    .replace(/[^a-zA-Z0-9_]/g, "_")
+                    .replace(/_+/g, "_"); // Replace non-alphanumeric with _, collapse multiple _
+                if (filename.length > 50) {
+                    // Keep filename reasonable length
+                    filename = filename.substring(0, 45) + "...";
+                }
+
+                return filename.toLowerCase(); // Consistent lowercase filename
             }
 
             /**
@@ -468,7 +513,8 @@
                     url += `?${queryParams.join("&")}`;
                 }
 
-                outputUrl.textContent = url;
+                outputUrl.value = url; // Set value for textarea
+                filenameInput.value = generateDefaultFilename(); // Update default filename
             }
 
             /**
@@ -489,9 +535,9 @@
              * Sends the generated URL to the Python backend to fetch and save data.
              */
             async function sendUrlToBackendAndSave() {
-                const urlToFetch = outputUrl.textContent;
-                const filenameBase = filenameInput.value.trim(); // Get base filename
-                const saveFormat = saveFormatSelect.value; // Get selected save format
+                const urlToFetch = outputUrl.value; // Get value from textarea
+                const filenameBase = filenameInput.value.trim();
+                const saveFormat = saveFormatSelect.value;
 
                 if (!urlToFetch) {
                     showMessage("Please generate a URL first.", "error");
@@ -511,8 +557,8 @@
                         },
                         body: JSON.stringify({
                             url: urlToFetch,
-                            filename: filenameBase, // Send base filename
-                            save_format: saveFormat, // Send save format
+                            filename: filenameBase,
+                            save_format: saveFormat,
                         }),
                     });
 
@@ -539,7 +585,7 @@
             generateUrlBtn.addEventListener("click", generateUrl);
 
             copyUrlBtn.addEventListener("click", () => {
-                const urlToCopy = outputUrl.textContent;
+                const urlToCopy = outputUrl.value; // Get value from textarea
                 if (urlToCopy) {
                     // Use document.execCommand('copy') for clipboard operations in iframe environments
                     const tempInput = document.createElement("textarea");
@@ -577,16 +623,17 @@
                 generateUrl(); // Regenerate URL
             });
 
-            // Event listeners for order by changes
+            // Event listeners for order by changes and filter changes
             orderByFieldSelect.addEventListener("change", generateUrl);
             orderByDirectionSelect.addEventListener("change", generateUrl);
+            // Note: Filter clause events already call generateUrl on value change
 
             // Initialize the UI on page load
             window.onload = () => {
                 populateTableSelect();
                 addFilterClause(); // Add the first filter clause on load
                 populateFieldSelect(orderByFieldSelect, tableSelect.value); // Populate order by fields
-                generateUrl(); // Generate initial URL on load
+                generateUrl(); // Generate initial URL and filename on load
             };
         </script>
     </body>
