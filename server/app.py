@@ -3,6 +3,7 @@ import csv
 import json
 import os
 from io import StringIO
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import requests
 from flask import Flask, jsonify, request, send_from_directory
@@ -103,59 +104,141 @@ def json_to_csv(json_data):
 @app.route("/fetch_and_save_data", methods=["POST"])
 def fetch_and_save_data():
     data = request.json
-    url = data.get("url")
+    base_url_from_frontend = data.get("url")
     filename_base = data.get(
         "filename", "knesset_odata_data"
     )  # Base filename without extension
     save_format = data.get("save_format", "json")  # 'json', 'csv', or 'both'
 
-    if not url:
+    # Define a timeout for external requests (e.g., 30 seconds)
+    REQUEST_TIMEOUT = 30
+
+    if not base_url_from_frontend:
         return jsonify({"status": "error", "message": "URL is missing."}), 400
 
     print("\n--- New Fetch Request ---")
-    print(f"Server received request to fetch: {url}")
+    print(f"Server received request to fetch: {base_url_from_frontend}")
     print(f"Server saving as: {save_format}")
 
+    parsed_url = urlparse(base_url_from_frontend)
+    query_params = parse_qs(parsed_url.query)
+
+    # Check if $top or $skip are already present in the URL
+    top_param_exists = "$top" in query_params
+    skip_param_exists = "$skip" in query_params
+
+    all_records = []
+    total_count = -1  # -1 indicates count not determined or not applicable
+    chunk_size = 1000  # Define a reasonable chunk size for pagination
+
     try:
-        # Fetch data from the OData URL
-        response = requests.get(url, headers={"Accept": "application/json"})
-        response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
-
-        json_content = None
-        csv_content = None
-        fetched_json_data = None  # Store parsed JSON data
-
-        try:
-            fetched_json_data = response.json()
-            json_content = json.dumps(fetched_json_data, indent=2, ensure_ascii=False)
-            print("Successfully parsed response as JSON.")
-
-            # Only attempt CSV conversion if JSON parsing was successful and format requested
-            if save_format in ["csv", "both"]:
-                csv_content = json_to_csv(fetched_json_data)
-                if (
-                    csv_content is None
-                ):  # json_to_csv might return None if conversion fails
-                    print("CSV conversion failed or returned None.")
-                elif csv_content == "":
-                    print("CSV content is empty (no data rows).")
-                else:
-                    print("CSV content generated successfully.")
-
-        except json.JSONDecodeError as e:
-            # If the response is not JSON, save it as plain text regardless of format request
-            print(f"Response is NOT valid JSON. Error: {e}. Saving as plain text.")
-            plain_text_content = response.text
-
-            save_path = os.path.join(app.root_path, f"{filename_base}.txt")
-            with open(save_path, "w", encoding="utf-8") as f:
-                f.write(plain_text_content)
-            return jsonify(
-                {
-                    "status": "success",
-                    "message": f"Response was not JSON. Saved as plain text to {filename_base}.txt on the server.",
-                }
+        # If $top is already specified, or $skip is present, assume user wants specific range
+        # and don't attempt full pagination. Just fetch the given URL.
+        if top_param_exists or skip_param_exists:
+            print(
+                "'$top' or '$skip' found in URL. Fetching single request as specified."
             )
+            response = requests.get(
+                base_url_from_frontend,
+                headers={"Accept": "application/json"},
+                timeout=REQUEST_TIMEOUT,
+            )
+            response.raise_for_status()
+            fetched_json_data = response.json()
+            if isinstance(fetched_json_data, dict) and "value" in fetched_json_data:
+                all_records = fetched_json_data["value"]
+            else:
+                all_records = (
+                    fetched_json_data  # Assume it's already the data or a single object
+                )
+            print(f"Fetched {len(all_records)} records from single request.")
+
+        else:  # No $top or $skip, attempt full pagination
+            print("No '$top' or '$skip' found. Attempting full pagination.")
+            # 1. Get total count first
+            count_query_params = query_params.copy()
+            count_query_params["$count"] = ["true"]
+            count_query_params["$top"] = ["0"]  # Request 0 records, just the count
+
+            count_url_parts = list(parsed_url)
+            count_url_parts[4] = urlencode(
+                count_query_params, doseq=True
+            )  # Rebuild query string
+            count_url = urlunparse(count_url_parts)
+
+            print(f"Fetching total count from: {count_url}")
+            count_response = requests.get(
+                count_url,
+                headers={"Accept": "application/json"},
+                timeout=REQUEST_TIMEOUT,
+            )
+            count_response.raise_for_status()
+            count_data = count_response.json()
+
+            if isinstance(count_data, dict) and "@odata.count" in count_data:
+                total_count = int(count_data["@odata.count"])
+                print(f"Total records available: {total_count}")
+            else:
+                print(
+                    "Could not determine total count from OData service. Falling back to fetching until no more data."
+                )
+                # If count not available, we'll just fetch until response is empty
+
+            current_skip = 0
+            while True:
+                page_query_params = query_params.copy()
+                page_query_params["$top"] = [str(chunk_size)]
+                page_query_params["$skip"] = [str(current_skip)]
+
+                page_url_parts = list(parsed_url)
+                page_url_parts[4] = urlencode(page_query_params, doseq=True)
+                page_url = urlunparse(page_url_parts)
+
+                print(f"Fetching chunk from: {page_url}")
+                page_response = requests.get(
+                    page_url,
+                    headers={"Accept": "application/json"},
+                    timeout=REQUEST_TIMEOUT,
+                )
+                page_response.raise_for_status()
+                page_data = page_response.json()
+
+                if (
+                    isinstance(page_data, dict)
+                    and "value" in page_data
+                    and isinstance(page_data["value"], list)
+                ):
+                    current_chunk_records = page_data["value"]
+                elif isinstance(page_data, list):  # Direct list of records
+                    current_chunk_records = page_data
+                else:  # Single object or unexpected format, stop
+                    current_chunk_records = []
+                    if page_data:  # If it's not empty, it might be a single record
+                        current_chunk_records = [page_data]
+
+                if not current_chunk_records:
+                    print("No more records in chunk. Stopping pagination.")
+                    break  # No more data
+
+                all_records.extend(current_chunk_records)
+                print(
+                    f"Fetched {len(current_chunk_records)} records in this chunk. Total fetched: {len(all_records)}"
+                )
+
+                if total_count != -1 and len(all_records) >= total_count:
+                    print(f"Reached total count ({total_count}). Stopping pagination.")
+                    break  # Fetched all expected records
+
+                current_skip += chunk_size
+                # Add a safeguard against infinite loops if total_count is wrong or not provided
+                if len(current_chunk_records) < chunk_size and total_count == -1:
+                    print(
+                        "Last chunk was smaller than chunk size and total count unknown. Assuming end of data."
+                    )
+                    break
+
+        json_content = json.dumps(all_records, indent=2, ensure_ascii=False)
+        print(f"Aggregated {len(all_records)} records for saving.")
 
         messages = []
 
@@ -168,9 +251,10 @@ def fetch_and_save_data():
             print(f"Saved {json_filename}")
 
         if (
-            save_format in ["csv", "both"] and csv_content is not None
-        ):  # Check for None explicitly as empty string is valid
-            if csv_content != "":  # Only save if there's actual CSV content
+            save_format in ["csv", "both"] and all_records
+        ):  # Check all_records for CSV conversion
+            csv_content = json_to_csv(all_records)  # Pass the aggregated list directly
+            if csv_content is not None and csv_content != "":
                 csv_filename = f"{filename_base}.csv"
                 save_path = os.path.join(app.root_path, csv_filename)
                 with open(
@@ -181,7 +265,7 @@ def fetch_and_save_data():
                 print(f"Saved {csv_filename}")
             else:
                 messages.append("CSV not saved (no data or conversion issue).")
-                print("CSV not saved because content was empty.")
+                print("CSV not saved because content was empty or conversion failed.")
 
         if not messages:
             return jsonify(
@@ -195,6 +279,12 @@ def fetch_and_save_data():
             {"status": "success", "message": " and ".join(messages) + " on the server."}
         )
 
+    except requests.exceptions.Timeout:
+        error_message = f"Request timed out after {REQUEST_TIMEOUT} seconds. The OData service might be slow or unresponsive."
+        print(error_message)
+        return jsonify(
+            {"status": "error", "message": error_message}
+        ), 504  # 504 Gateway Timeout
     except requests.exceptions.RequestException as e:
         error_message = f"Error fetching data from OData service: {e}"
         print(error_message)
