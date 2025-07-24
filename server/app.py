@@ -111,7 +111,7 @@ def fetch_and_save_data():
     save_format = data.get("save_format", "json")  # 'json', 'csv', or 'both'
 
     # Define a timeout for external requests (e.g., 30 seconds)
-    REQUEST_TIMEOUT = 30
+    REQUEST_TIMEOUT = 60
 
     if not base_url_from_frontend:
         return jsonify({"status": "error", "message": "URL is missing."}), 400
