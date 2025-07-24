@@ -10,6 +10,75 @@
             href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
             rel="stylesheet"
         />
+        <style>
+            /* Additional styles for the new expand builder */
+            .expand-clause-level {
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 15px;
+                background-color: #f9fafb;
+            }
+            .expand-clause-level .level-header {
+                font-weight: 600;
+                margin-bottom: 10px;
+                color: #374151;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .expand-clause-level .level-controls {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 10px;
+                align-items: center;
+            }
+            .expand-clause-level .level-controls select,
+            .expand-clause-level .level-controls input[type="text"] {
+                flex-grow: 1;
+                min-width: 0;
+            }
+            .expand-clause-level .nested-expands-container {
+                margin-top: 15px;
+                padding-left: 20px;
+                border-left: 2px solid #d1d5db;
+            }
+            .add-nested-expand-btn {
+                background-color: #3b82f6; /* Blue-500 */
+                color: white;
+                border: none;
+                padding: 6px 10px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 0.875rem;
+                transition: background-color 0.2s ease-in-out;
+            }
+            .add-nested-expand-btn:hover {
+                background-color: #2563eb; /* Blue-600 */
+            }
+            .remove-level-btn {
+                background-color: #ef4444; /* Red-500 */
+                color: white;
+                padding: 6px 10px;
+                border-radius: 6px;
+                cursor: pointer;
+                border: none;
+                font-weight: 500;
+                transition: background-color 0.2s ease-in-out;
+            }
+            .remove-level-btn:hover {
+                background-color: #dc2626; /* Red-600 */
+            }
+            .add-top-level-expand-btn {
+                background-color: #10b981; /* Emerald-500 */
+                color: white;
+                border: none;
+                margin-top: 10px;
+            }
+            .add-top-level-expand-btn:hover {
+                background-color: #059669; /* Emerald-600 */
+            }
+        </style>
     </head>
     <body
         class="flex items-center justify-content-center min-h-screen bg-gray-100 p-5"
@@ -74,6 +143,48 @@
                         <option value="asc">Ascending</option>
                         <option value="desc">Descending</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- New Dynamic Expand Builder -->
+            <div class="form-group">
+                <label>Build Expands:</label>
+                <div id="mainExpandContainer">
+                    <!-- Expand levels will be added here -->
+                </div>
+                <button
+                    id="addTopLevelExpandBtn"
+                    class="btn add-top-level-expand-btn"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                    >
+                        <path
+                            fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
+                            clip-rule="evenodd"
+                        />
+                    </svg>
+                    Add Top-Level Expand
+                </button>
+                <div class="form-group mt-4">
+                    <label
+                        >Suggested Expands for
+                        <span
+                            id="currentTableExpandSuggestions"
+                            class="font-semibold text-blue-700"
+                        ></span
+                        >:</label
+                    >
+                    <div
+                        id="expandSuggestionsContainer"
+                        class="flex flex-wrap gap-2 mt-2"
+                    >
+                        <!-- Suggestions will be populated here -->
+                    </div>
                 </div>
             </div>
 
@@ -169,12 +280,19 @@
 
         <script type="module">
             // Import data from odataConfig.js
-            import { TABLES, TABLE_FIELDS_METADATA } from "./odataConfig.js";
+            import {
+                TABLES,
+                TABLE_FIELDS_METADATA,
+                TABLE_NAVIGATION_PROPERTIES_MAP,
+            } from "./odataConfig.js";
 
             // Define the base URL for the OData service
             const BASE_URL = "https://knesset.gov.il/OdataV4/ParliamentInfo/";
             // Define the endpoint for the Python backend
             const BACKEND_URL = "http://127.0.0.1:5000/fetch_and_save_data"; // Assuming Flask runs on port 5000
+
+            // Define the maximum allowed expansion depth by the OData service
+            const MAX_EXPANSION_DEPTH = 2; // As per the error message
 
             // Get references to DOM elements
             const tableSelect = document.getElementById("tableSelect");
@@ -188,9 +306,21 @@
             const orderByDirectionSelect = document.getElementById(
                 "orderByDirectionSelect",
             );
+            const mainExpandContainer = document.getElementById(
+                "mainExpandContainer",
+            );
+            const addTopLevelExpandBtn = document.getElementById(
+                "addTopLevelExpandBtn",
+            ); // New button
+            const expandSuggestionsContainer = document.getElementById(
+                "expandSuggestionsContainer",
+            );
+            const currentTableExpandSuggestionsSpan = document.getElementById(
+                "currentTableExpandSuggestions",
+            );
             const generateUrlBtn = document.getElementById("generateUrlBtn");
             const copyUrlBtn = document.getElementById("copyUrlBtn");
-            const outputUrl = document.getElementById("outputUrl"); // Now a textarea
+            const outputUrl = document.getElementById("outputUrl");
             const filenameInput = document.getElementById("filenameInput");
             const saveFormatSelect =
                 document.getElementById("saveFormatSelect");
@@ -230,6 +360,56 @@
                     option.textContent = field.name;
                     fieldSelectElement.appendChild(option);
                 });
+            }
+
+            /**
+             * Populates the expand suggestions based on the currently selected table.
+             */
+            function populateExpandSuggestions() {
+                const selectedTable = tableSelect.value;
+                expandSuggestionsContainer.innerHTML = ""; // Clear existing suggestions
+                currentTableExpandSuggestionsSpan.textContent = selectedTable; // Update current table name in label
+
+                const suggestions =
+                    TABLE_NAVIGATION_PROPERTIES_MAP[selectedTable] || [];
+
+                if (suggestions.length === 0) {
+                    expandSuggestionsContainer.textContent =
+                        "No direct expand suggestions for this table.";
+                } else {
+                    suggestions.forEach((prop) => {
+                        const span = document.createElement("span");
+                        span.className =
+                            "inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full cursor-pointer hover:bg-blue-200 transition-colors duration-200";
+                        span.textContent = prop.name;
+                        span.dataset.value = prop.name; // Store the direct property name
+
+                        span.addEventListener("click", () => {
+                            // Find the last active expand clause's custom input
+                            const lastExpandClauseLevel =
+                                mainExpandContainer.lastElementChild;
+                            if (lastExpandClauseLevel) {
+                                const customInput =
+                                    lastExpandClauseLevel.querySelector(
+                                        ".expand-custom-input",
+                                    );
+                                if (customInput) {
+                                    const currentValue =
+                                        customInput.value.trim();
+                                    if (currentValue) {
+                                        // If current input has content, append with comma
+                                        customInput.value = `${currentValue},${suggestion.name}`;
+                                    } else {
+                                        // Otherwise, just set it
+                                        customInput.value = suggestion.name;
+                                    }
+                                    generateUrl(); // Regenerate URL after adding suggestion
+                                }
+                            }
+                        });
+                        expandSuggestionsContainer.appendChild(span);
+                    });
+                }
             }
 
             /**
@@ -304,16 +484,162 @@
 
                 // If this is not the first clause, ensure the previous one's logical operator is visible
                 if (filterClausesContainer.children.length > 1) {
-                    const previousClause =
-                        filterClausesContainer.children[
-                            filterClausesContainer.children.length - 2
-                        ];
-                    previousClause.querySelector(
+                    filterClausesContainer.children[0].querySelector(
                         ".logical-operator-select",
                     ).style.display = "block";
                 }
 
                 generateUrl(); // Generate URL immediately after adding a clause
+            }
+
+            /**
+             * Recursively adds a nested expand level.
+             * @param {HTMLElement} parentContainer - The container to which the new level will be added.
+             * @param {string} currentEntityType - The entity type whose navigation properties should be listed.
+             * @param {number} level - The current nesting level (for display purposes).
+             */
+            function addNestedExpandLevel(
+                parentContainer,
+                currentEntityType,
+                level = 0,
+            ) {
+                const levelDiv = document.createElement("div");
+                levelDiv.className = "expand-clause-level";
+                levelDiv.dataset.entityType = currentEntityType; // Store the entity type for this level
+
+                const levelHeader = document.createElement("div");
+                levelHeader.className = "level-header";
+                levelHeader.innerHTML = `<span>Level ${level + 1}: Expand from <span class="font-bold">${currentEntityType}</span></span>`;
+
+                const removeButton = document.createElement("button");
+                removeButton.className = "remove-level-btn";
+                removeButton.textContent = "Remove Level";
+                removeButton.addEventListener("click", () => {
+                    levelDiv.remove();
+                    generateUrl(); // Regenerate URL after removal
+                });
+                levelHeader.appendChild(removeButton);
+                levelDiv.appendChild(levelHeader);
+
+                const levelControls = document.createElement("div");
+                levelControls.className = "level-controls";
+
+                const navPropSelect = document.createElement("select");
+                navPropSelect.className =
+                    "nav-prop-select p-2 border rounded-md";
+                populateNavPropSelect(navPropSelect, currentEntityType);
+                levelControls.appendChild(navPropSelect);
+
+                const customInput = document.createElement("input");
+                customInput.type = "text";
+                customInput.placeholder =
+                    "Custom expand or nested (e.g., Prop($expand=NestedProp))";
+                customInput.className =
+                    "expand-custom-input p-2 border rounded-md";
+                levelControls.appendChild(customInput);
+
+                levelDiv.appendChild(levelControls);
+
+                const nestedContainer = document.createElement("div");
+                nestedContainer.className = "nested-expands-container";
+                levelDiv.appendChild(nestedContainer);
+
+                parentContainer.appendChild(levelDiv);
+
+                // Add nested expand button only if not at max depth
+                if (level < MAX_EXPANSION_DEPTH) {
+                    const addNestedBtn = document.createElement("button");
+                    addNestedBtn.className = "add-nested-expand-btn mt-2";
+                    addNestedBtn.textContent = `Add Nested Expand for ${currentEntityType}`;
+                    addNestedBtn.addEventListener("click", () => {
+                        addNestedExpandLevel(
+                            nestedContainer,
+                            navPropSelect.selectedOptions[0].dataset
+                                .targetType || "",
+                            level + 1,
+                        );
+                    });
+                    levelControls.appendChild(addNestedBtn);
+                } else {
+                    const warningSpan = document.createElement("span");
+                    warningSpan.className = "text-sm text-red-500 mt-2";
+                    warningSpan.textContent = `Max expand depth (${MAX_EXPANSION_DEPTH}) reached.`;
+                    levelControls.appendChild(warningSpan);
+                }
+
+                // Event listener for selection change in this level's dropdown
+                navPropSelect.addEventListener("change", () => {
+                    const selectedNavPropName = navPropSelect.value;
+                    // Clear any existing nested levels and nested button when a new selection is made
+                    nestedContainer.innerHTML = "";
+                    const existingAddNestedBtn = levelControls.querySelector(
+                        ".add-nested-expand-btn",
+                    );
+                    if (existingAddNestedBtn) existingAddNestedBtn.remove();
+
+                    customInput.value = selectedNavPropName; // Set custom input to selected value
+
+                    if (selectedNavPropName && level < MAX_EXPANSION_DEPTH) {
+                        const navProps =
+                            TABLE_NAVIGATION_PROPERTIES_MAP[
+                                currentEntityType
+                            ] || [];
+                        const selectedProp = navProps.find(
+                            (p) => p.name === selectedNavPropName,
+                        );
+
+                        if (selectedProp && selectedProp.targetType) {
+                            // Add a button to add a nested level for the target type
+                            const addNestedBtn =
+                                document.createElement("button");
+                            addNestedBtn.className =
+                                "add-nested-expand-btn mt-2";
+                            addNestedBtn.textContent = `Add Nested Expand for ${selectedProp.targetType}`;
+                            addNestedBtn.addEventListener("click", () => {
+                                // Recursively add a new level inside the nestedContainer
+                                addNestedExpandLevel(
+                                    nestedContainer,
+                                    selectedProp.targetType,
+                                    level + 1,
+                                );
+                            });
+                            levelControls.appendChild(addNestedBtn); // Add button to current level's controls
+                        }
+                    }
+                    generateUrl(); // Regenerate URL
+                });
+
+                // Event listener for custom input change
+                customInput.addEventListener("input", () => {
+                    navPropSelect.value = ""; // Clear select if custom input is used
+                    nestedContainer.innerHTML = ""; // Clear nested levels if custom input is used
+                    const addNestedBtn = levelControls.querySelector(
+                        ".add-nested-expand-btn",
+                    );
+                    if (addNestedBtn) addNestedBtn.remove(); // Remove nested button if custom input is used
+                    generateUrl();
+                });
+
+                generateUrl(); // Initial URL generation
+            }
+
+            /**
+             * Populates a navigation property select dropdown for a given entity type.
+             * @param {HTMLSelectElement} selectElement - The select element to populate.
+             * @param {string} entityType - The entity type for which to get navigation properties.
+             */
+            function populateNavPropSelect(selectElement, entityType) {
+                selectElement.innerHTML =
+                    '<option value="">-- Select Property --</option>';
+                const navProps =
+                    TABLE_NAVIGATION_PROPERTIES_MAP[entityType] || [];
+                navProps.forEach((prop) => {
+                    const option = document.createElement("option");
+                    option.value = prop.name;
+                    option.textContent = prop.name;
+                    option.dataset.targetType = prop.targetType; // Store target type for nested expands
+                    selectElement.appendChild(option);
+                });
             }
 
             /**
@@ -423,6 +749,42 @@
             }
 
             /**
+             * Recursively builds the expand string from nested expand levels.
+             * @param {HTMLElement} container - The current container of expand levels.
+             * @returns {string} The constructed expand string for this level.
+             */
+            function buildExpandStringRecursive(container) {
+                const expands = [];
+                Array.from(container.children).forEach((levelDiv) => {
+                    const navPropSelect =
+                        levelDiv.querySelector(".nav-prop-select");
+                    const customInput = levelDiv.querySelector(
+                        ".expand-custom-input",
+                    );
+                    const nestedContainer = levelDiv.querySelector(
+                        ".nested-expands-container",
+                    );
+
+                    let currentExpandPart = "";
+                    if (customInput && customInput.value.trim()) {
+                        currentExpandPart = customInput.value.trim();
+                    } else if (navPropSelect && navPropSelect.value) {
+                        currentExpandPart = navPropSelect.value;
+                    }
+
+                    if (currentExpandPart) {
+                        const nestedExpands =
+                            buildExpandStringRecursive(nestedContainer);
+                        if (nestedExpands) {
+                            currentExpandPart = `${currentExpandPart}($expand=${nestedExpands})`;
+                        }
+                        expands.push(currentExpandPart);
+                    }
+                });
+                return expands.join(",");
+            }
+
+            /**
              * Generates a unique and self-explanatory default filename.
              * @returns {string} The suggested filename base.
              */
@@ -449,11 +811,25 @@
                     ? `${orderByFieldSelect.value}_${orderByDirectionSelect.value}`
                     : "";
 
+                const expandClause =
+                    buildExpandStringRecursive(mainExpandContainer); // Get the combined expand string
+                let sanitizedExpandClause = "";
+                if (expandClause) {
+                    // Basic sanitization for filename
+                    sanitizedExpandClause = expandClause
+                        .replace(/[^a-zA-Z0-9_]/g, "_")
+                        .replace(/_+/g, "_");
+                }
+
                 if (filterClauses) {
                     filename += `_filtered_by_${filterClauses}`;
                 }
                 if (orderByClause) {
                     filename += `_ordered_by_${orderByClause}`;
+                }
+                if (sanitizedExpandClause) {
+                    // Use sanitized value for filename
+                    filename += `_expanded_with_${sanitizedExpandClause}`;
                 }
 
                 // Sanitize filename: replace spaces and special chars with underscores, truncate if too long
@@ -508,6 +884,20 @@
                     queryParams.push(`$orderby=${encodedOrderBy}`);
                 }
 
+                // 3. Generate Expand String
+                const expandValue =
+                    buildExpandStringRecursive(mainExpandContainer); // Use the new buildExpandStringRecursive function
+                if (expandValue) {
+                    // Encode the entire expand string
+                    let encodedExpand = encodeURIComponent(expandValue);
+                    // Selectively decode structural characters for OData
+                    encodedExpand = encodedExpand
+                        .replace(/%28/g, "(") // Decode '('
+                        .replace(/%29/g, ")") // Decode ')'
+                        .replace(/%2F/g, "/"); // Decode '/'
+                    queryParams.push(`$expand=${encodedExpand}`);
+                }
+
                 // Combine all query parameters
                 if (queryParams.length > 0) {
                     url += `?${queryParams.join("&")}`;
@@ -532,6 +922,30 @@
             }
 
             /**
+             * Sets the loading state for the fetch button.
+             * @param {boolean} isLoading - True to show loading, false to hide.
+             */
+            function setFetchLoadingState(isLoading) {
+                fetchAndSaveBtn.disabled = isLoading;
+                if (isLoading) {
+                    fetchAndSaveBtn.innerHTML = `
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Fetching...
+                `;
+                } else {
+                    fetchAndSaveBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                    Fetch & Save Data (on server)
+                `;
+                }
+            }
+
+            /**
              * Sends the generated URL to the Python backend to fetch and save data.
              */
             async function sendUrlToBackendAndSave() {
@@ -544,6 +958,7 @@
                     return;
                 }
 
+                setFetchLoadingState(true); // Show loading indicator
                 showMessage(
                     "Sending request to server to fetch data...",
                     "info",
@@ -578,6 +993,8 @@
                         `Network error: Could not connect to the Python server. Make sure it's running at ${BACKEND_URL}.`,
                         "error",
                     );
+                } finally {
+                    setFetchLoadingState(false); // Hide loading indicator
                 }
             }
 
@@ -610,29 +1027,40 @@
             });
 
             addFilterClauseBtn.addEventListener("click", addFilterClause);
+            addTopLevelExpandBtn.addEventListener("click", () =>
+                addNestedExpandLevel(mainExpandContainer, tableSelect.value, 0),
+            ); // New button click handler
             fetchAndSaveBtn.addEventListener("click", sendUrlToBackendAndSave);
 
             // Event listener for table selection change
             tableSelect.addEventListener("change", () => {
                 // Clear existing filter clauses
                 filterClausesContainer.innerHTML = "";
-                // Add a new empty filter clause for the newly selected table
-                addFilterClause();
+                addFilterClause(); // Add a new empty filter clause for the newly selected table
+
+                // Clear existing expand clauses and add the initial one
+                mainExpandContainer.innerHTML = "";
+                addNestedExpandLevel(mainExpandContainer, tableSelect.value, 0); // Start the main expand builder
+
                 // Update order by field select
                 populateFieldSelect(orderByFieldSelect, tableSelect.value);
+                populateExpandSuggestions(); // Populate expand suggestions when table changes
                 generateUrl(); // Regenerate URL
             });
 
-            // Event listeners for order by changes and filter changes
+            // Event listeners for order by changes and expand changes
             orderByFieldSelect.addEventListener("change", generateUrl);
             orderByDirectionSelect.addEventListener("change", generateUrl);
+            // Note: Expand clause events are added dynamically within addNestedExpandLevel
             // Note: Filter clause events already call generateUrl on value change
 
             // Initialize the UI on page load
             window.onload = () => {
                 populateTableSelect();
                 addFilterClause(); // Add the first filter clause on load
+                addNestedExpandLevel(mainExpandContainer, tableSelect.value, 0); // Start the main expand builder on load
                 populateFieldSelect(orderByFieldSelect, tableSelect.value); // Populate order by fields
+                populateExpandSuggestions(); // Populate expand suggestions on load
                 generateUrl(); // Generate initial URL and filename on load
             };
         </script>

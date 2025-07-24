@@ -1,4 +1,4 @@
-// List of available tables extracted from the KnessetOdataManual.docx
+// List of available tables (unchanged)
 export const TABLES = [
   "KNS_Agenda",
   "KNS_Bill",
@@ -46,7 +46,7 @@ export const TABLES = [
   "KNS_PlenumVoteResult",
 ];
 
-// Detailed metadata for table fields (unchanged from previous version)
+// Detailed metadata for table fields (unchanged)
 export const TABLE_FIELDS_METADATA = {
   KNS_Agenda: [
     { name: "Id", type: "Edm.Int32" },
@@ -542,177 +542,198 @@ export const TABLE_FIELDS_METADATA = {
 };
 
 // GENERATED FROM METADATA XML
-export const TABLE_NAVIGATION_PROPERTIES_SUGGESTIONS = {
+// This map stores direct navigation properties for each EntityType
+// Key: Source EntityType Name
+// Value: Array of { name: NavigationPropertyName, targetType: TargetEntityTypeCollectionName }
+export const TABLE_NAVIGATION_PROPERTIES_MAP = {
   KNS_Agenda: [
-    { name: "KNS_DocumentAgenda", value: "KNS_DocumentAgenda" },
-    { name: "KNS_Committee", value: "KNS_Committee" },
-    { name: "KNS_PersonToPosition", value: "KNS_PersonToPosition" },
-    { name: "KNS_Status", value: "KNS_Status" },
-    { name: "KNS_RecommendCommittee", value: "KNS_RecommendCommittee" },
+    { name: "KNS_DocumentAgenda", targetType: "KNS_DocumentAgenda" },
+    { name: "KNS_Committee", targetType: "KNS_Committee" },
+    { name: "KNS_PersonToPosition", targetType: "KNS_PersonToPosition" },
+    { name: "KNS_Status", targetType: "KNS_Status" },
+    { name: "KNS_RecommendCommittee", targetType: "KNS_Committee" },
     {
       name: "KNS_PersonToPositionMinister",
-      value: "KNS_PersonToPositionMinister",
+      targetType: "KNS_PersonToPosition",
     },
   ],
   KNS_Bill: [
-    { name: "KNS_BillHistoryInitiator", value: "KNS_BillHistoryInitiator" },
-    { name: "KNS_BillInitiator", value: "KNS_BillInitiator" },
-    { name: "KNS_BillName", value: "KNS_BillName" },
-    { name: "KNS_BillSplit", value: "KNS_BillSplit" },
-    { name: "KNS_BillSplit_Main", value: "KNS_BillSplit_Main" },
-    { name: "KNS_BillUnion", value: "KNS_BillUnion" },
-    { name: "KNS_BillUnion_Main", value: "KNS_BillUnion_Main" },
-    { name: "KNS_Committee", value: "KNS_Committee" },
-    { name: "KNS_DocumentBill", value: "KNS_DocumentBill" },
-    { name: "KNS_Status", value: "KNS_Status" },
-    { name: "KNS_ItemType", value: "KNS_ItemType" },
+    {
+      name: "KNS_BillHistoryInitiator",
+      targetType: "KNS_BillHistoryInitiator",
+    },
+    { name: "KNS_BillInitiator", targetType: "KNS_BillInitiator" },
+    { name: "KNS_BillName", targetType: "KNS_BillName" },
+    { name: "KNS_BillSplit", targetType: "KNS_BillSplit" },
+    { name: "KNS_BillSplit_Main", targetType: "KNS_BillSplit" },
+    { name: "KNS_BillUnion", targetType: "KNS_BillUnion" },
+    { name: "KNS_BillUnion_Main", targetType: "KNS_Bill" },
+    { name: "KNS_Committee", targetType: "KNS_Committee" },
+    { name: "KNS_DocumentBill", targetType: "KNS_DocumentBill" },
+    { name: "KNS_Status", targetType: "KNS_Status" },
+    { name: "KNS_ItemType", targetType: "KNS_ItemType" },
   ],
   KNS_BillHistoryInitiator: [
-    { name: "KNS_Bill", value: "KNS_Bill" },
-    { name: "KNS_PersonToPosition", value: "KNS_PersonToPosition" },
+    { name: "KNS_Bill", targetType: "KNS_Bill" },
+    { name: "KNS_PersonToPosition", targetType: "KNS_PersonToPosition" },
   ],
   KNS_BillInitiator: [
-    { name: "KNS_Bill", value: "KNS_Bill" },
-    { name: "KNS_PersonToPosition", value: "KNS_PersonToPosition" },
+    { name: "KNS_Bill", targetType: "KNS_Bill" },
+    { name: "KNS_PersonToPosition", targetType: "KNS_PersonToPosition" },
   ],
-  KNS_BillName: [{ name: "KNS_Bill", value: "KNS_Bill" }],
+  KNS_BillName: [{ name: "KNS_Bill", targetType: "KNS_Bill" }],
   KNS_BillSplit: [
-    { name: "KNS_Bill", value: "KNS_Bill" },
-    { name: "KNS_Bill_Main", value: "KNS_Bill_Main" },
+    { name: "KNS_Bill", targetType: "KNS_Bill" },
+    { name: "KNS_Bill_Main", targetType: "KNS_Bill" },
   ],
   KNS_BillUnion: [
-    { name: "KNS_Bill", value: "KNS_Bill" },
-    { name: "KNS_Bill_Main", value: "KNS_Bill_Main" },
+    { name: "KNS_Bill", targetType: "KNS_Bill" },
+    { name: "KNS_Bill_Main", targetType: "KNS_Bill" },
   ],
   KNS_CmtSessionItem: [
-    { name: "KNS_CommitteeSession", value: "KNS_CommitteeSession" },
-    { name: "KNS_Status", value: "KNS_Status" },
+    { name: "KNS_CommitteeSession", targetType: "KNS_CommitteeSession" },
+    { name: "KNS_Status", targetType: "KNS_Status" },
   ],
   KNS_Committee: [
-    { name: "KNS_Bill", value: "KNS_Bill" },
-    { name: "KNS_Agenda", value: "KNS_Agenda" },
-    { name: "KNS_CommitteeSession", value: "KNS_CommitteeSession" },
-    { name: "KNS_JointCommittee", value: "KNS_JointCommittee" },
-    { name: "KNS_Agenda1", value: "KNS_Agenda1" },
-    { name: "KNS_SecondaryLaw", value: "KNS_SecondaryLaw" },
-    { name: "KNS_JointCommittee1", value: "KNS_JointCommittee1" },
+    { name: "KNS_Bill", targetType: "KNS_Bill" },
+    { name: "KNS_Agenda", targetType: "KNS_Agenda" },
+    { name: "KNS_CommitteeSession", targetType: "KNS_CommitteeSession" },
+    { name: "KNS_JointCommittee", targetType: "KNS_JointCommittee" },
+    { name: "KNS_Agenda1", targetType: "KNS_Agenda" },
+    { name: "KNS_SecondaryLaw", targetType: "KNS_SecondaryLaw" },
+    { name: "KNS_JointCommittee1", targetType: "KNS_JointCommittee" },
   ],
   KNS_CommitteeSession: [
-    { name: "KNS_Committee", value: "KNS_Committee" },
+    { name: "KNS_Committee", targetType: "KNS_Committee" },
     {
       name: "KNS_DocumentCommitteeSession",
-      value: "KNS_DocumentCommitteeSession",
+      targetType: "KNS_DocumentCommitteeSession",
     },
-    { name: "KNS_Status", value: "KNS_Status" },
-    { name: "KNS_CmtSessionItem", value: "KNS_CmtSessionItem" },
+    { name: "KNS_Status", targetType: "KNS_Status" },
+    { name: "KNS_CmtSessionItem", targetType: "KNS_CmtSessionItem" },
   ],
-  KNS_DocumentAgenda: [{ name: "KNS_Agenda", value: "KNS_Agenda" }],
-  KNS_DocumentBill: [{ name: "KNS_Bill", value: "KNS_Bill" }],
+  KNS_DocumentAgenda: [{ name: "KNS_Agenda", targetType: "KNS_Agenda" }],
+  KNS_DocumentBill: [{ name: "KNS_Bill", targetType: "KNS_Bill" }],
   KNS_DocumentCommitteeSession: [
-    { name: "KNS_CommitteeSession", value: "KNS_CommitteeSession" },
+    { name: "KNS_CommitteeSession", targetType: "KNS_CommitteeSession" },
   ],
-  KNS_DocumentIsraelLaw: [{ name: "KNS_IsraelLaw", value: "KNS_IsraelLaw" }],
+  KNS_DocumentIsraelLaw: [
+    { name: "KNS_IsraelLaw", targetType: "KNS_IsraelLaw" },
+  ],
   KNS_DocumentPlenumSession: [
-    { name: "KNS_PlenumSession", value: "KNS_PlenumSession" },
+    { name: "KNS_PlenumSession", targetType: "KNS_PlenumSession" },
   ],
-  KNS_DocumentQuery: [{ name: "KNS_Query", value: "KNS_Query" }],
+  KNS_DocumentQuery: [{ name: "KNS_Query", targetType: "KNS_Query" }],
   KNS_DocumentSecondaryLaw: [
-    { name: "KNS_SecondaryLaw", value: "KNS_SecondaryLaw" },
+    { name: "KNS_SecondaryLaw", targetType: "KNS_SecondaryLaw" },
   ],
   KNS_Faction: [
-    { name: "KNS_PersonToPosition", value: "KNS_PersonToPosition" },
+    { name: "KNS_PersonToPosition", targetType: "KNS_PersonToPosition" },
   ],
   KNS_GovMinistry: [
-    { name: "KNS_Query", value: "KNS_Query" },
-    { name: "KNS_PersonToPosition", value: "KNS_PersonToPosition" },
-    { name: "KNS_IsraelLawMinistry", value: "KNS_IsraelLawMinistry" },
+    { name: "KNS_Query", targetType: "KNS_Query" },
+    { name: "KNS_PersonToPosition", targetType: "KNS_PersonToPosition" },
+    { name: "KNS_IsraelLawMinistry", targetType: "KNS_IsraelLawMinistry" },
   ],
   KNS_IsraelLaw: [
-    { name: "KNS_DocumentIsraelLaw", value: "KNS_DocumentIsraelLaw" },
-    { name: "KNS_IsraelLawBinding", value: "KNS_IsraelLawBinding" },
+    { name: "KNS_DocumentIsraelLaw", targetType: "KNS_DocumentIsraelLaw" },
+    { name: "KNS_IsraelLawBinding", targetType: "KNS_IsraelLawBinding" },
     {
       name: "KNS_IsraelLawClassificiation",
-      value: "KNS_IsraelLawClassificiation",
+      targetType: "KNS_IsraelLawClassificiation",
     },
-    { name: "KNS_IsraelLawMinistry", value: "KNS_IsraelLawMinistry" },
-    { name: "KNS_IsraelLawName", value: "KNS_IsraelLawName" },
+    { name: "KNS_IsraelLawMinistry", targetType: "KNS_IsraelLawMinistry" },
+    { name: "KNS_IsraelLawName", targetType: "KNS_IsraelLawName" },
   ],
-  KNS_IsraelLawBinding: [{ name: "KNS_IsraelLaw", value: "KNS_IsraelLaw" }],
+  KNS_IsraelLawBinding: [
+    { name: "KNS_IsraelLaw", targetType: "KNS_IsraelLaw" },
+  ],
   KNS_IsraelLawClassificiation: [
-    { name: "KNS_IsraelLaw", value: "KNS_IsraelLaw" },
+    { name: "KNS_IsraelLaw", targetType: "KNS_IsraelLaw" },
   ],
   KNS_IsraelLawMinistry: [
-    { name: "KNS_IsraelLaw", value: "KNS_IsraelLaw" },
-    { name: "KNS_GovMinistry", value: "KNS_GovMinistry" },
+    { name: "KNS_IsraelLaw", targetType: "KNS_IsraelLaw" },
+    { name: "KNS_GovMinistry", targetType: "KNS_GovMinistry" },
   ],
-  KNS_IsraelLawName: [{ name: "KNS_IsraelLaw", value: "KNS_IsraelLaw" }],
-  KNS_ItemType: [{ name: "KNS_Bill", value: "KNS_Bill" }],
+  KNS_IsraelLawName: [{ name: "KNS_IsraelLaw", targetType: "KNS_IsraelLaw" }],
+  KNS_ItemType: [{ name: "KNS_Bill", targetType: "KNS_Bill" }],
   KNS_JointCommittee: [
-    { name: "KNS_Committee", value: "KNS_Committee" },
-    { name: "KNS_CommitteeParticipant", value: "KNS_CommitteeParticipant" },
+    { name: "KNS_Committee", targetType: "KNS_Committee" },
+    { name: "KNS_CommitteeParticipant", targetType: "KNS_Committee" },
   ],
   KNS_Person: [
-    { name: "KNS_PersonToPosition", value: "KNS_PersonToPosition" },
-    { name: "KNS_PlenumVoteResult", value: "KNS_PlenumVoteResult" },
+    { name: "KNS_PersonToPosition", targetType: "KNS_PersonToPosition" },
+    { name: "KNS_PlenumVoteResult", targetType: "KNS_PlenumVoteResult" },
   ],
   KNS_PersonToPosition: [
-    { name: "KNS_Faction", value: "KNS_Faction" },
-    { name: "KNS_Person", value: "KNS_Person" },
-    { name: "KNS_Agenda", value: "KNS_Agenda" },
-    { name: "KNS_BillHistoryInitiator", value: "KNS_BillHistoryInitiator" },
-    { name: "KNS_BillInitiator", value: "KNS_BillInitiator" },
-    { name: "KNS_Agenda1", value: "KNS_Agenda1" },
-    { name: "KNS_Position", value: "KNS_Position" },
-    { name: "KNS_GovMinistry", value: "KNS_GovMinistry" },
+    { name: "KNS_Faction", targetType: "KNS_Faction" },
+    { name: "KNS_Person", targetType: "KNS_Person" },
+    { name: "KNS_Agenda", targetType: "KNS_Agenda" },
+    {
+      name: "KNS_BillHistoryInitiator",
+      targetType: "KNS_BillHistoryInitiator",
+    },
+    { name: "KNS_BillInitiator", targetType: "KNS_BillInitiator" },
+    { name: "KNS_Agenda1", targetType: "KNS_Agenda" },
+    { name: "KNS_Position", targetType: "KNS_Position" },
+    { name: "KNS_GovMinistry", targetType: "KNS_GovMinistry" },
   ],
   KNS_PlenumSession: [
-    { name: "KNS_DocumentPlenumSession", value: "KNS_DocumentPlenumSession" },
-    { name: "KNS_PlenumVote", value: "KNS_PlenumVote" },
-    { name: "KNS_PlmSessionItem", value: "KNS_PlmSessionItem" },
+    {
+      name: "KNS_DocumentPlenumSession",
+      targetType: "KNS_DocumentPlenumSession",
+    },
+    { name: "KNS_PlenumVote", targetType: "KNS_PlenumVote" },
+    { name: "KNS_PlmSessionItem", targetType: "KNS_PlmSessionItem" },
   ],
   KNS_PlmSessionItem: [
-    { name: "KNS_PlenumSession", value: "KNS_PlenumSession" },
-    { name: "KNS_Status", value: "KNS_Status" },
+    { name: "KNS_PlenumSession", targetType: "KNS_PlenumSession" },
+    { name: "KNS_Status", targetType: "KNS_Status" },
   ],
   KNS_Position: [
-    { name: "KNS_PersonToPosition", value: "KNS_PersonToPosition" },
+    { name: "KNS_PersonToPosition", targetType: "KNS_PersonToPosition" },
   ],
   KNS_Query: [
-    { name: "KNS_DocumentQuery", value: "KNS_DocumentQuery" },
-    { name: "KNS_GovMinistry", value: "KNS_GovMinistry" },
-    { name: "KNS_Status", value: "KNS_Status" },
+    { name: "KNS_DocumentQuery", targetType: "KNS_DocumentQuery" },
+    { name: "KNS_GovMinistry", targetType: "KNS_GovMinistry" },
+    { name: "KNS_Status", targetType: "KNS_Status" },
   ],
   KNS_SecLawAuthorizingLaw: [
-    { name: "KNS_SecondaryLaw", value: "KNS_SecondaryLaw" },
+    { name: "KNS_SecondaryLaw", targetType: "KNS_SecondaryLaw" },
   ],
   KNS_SecLawRegulator: [
-    { name: "KNS_SecondaryLaw", value: "KNS_SecondaryLaw" },
+    { name: "KNS_SecondaryLaw", targetType: "KNS_SecondaryLaw" },
   ],
   KNS_SecondaryLaw: [
-    { name: "KNS_SecToSecBinding", value: "KNS_SecToSecBinding" },
-    { name: "KNS_SecToSecBinding_Parent", value: "KNS_SecToSecBinding_Parent" },
-    { name: "KNS_Committee", value: "KNS_Committee" },
-    { name: "KNS_Status", value: "KNS_Status" },
-    { name: "KNS_SecLawAuthorizingLaw", value: "KNS_SecLawAuthorizingLaw" },
-    { name: "KNS_SecLawRegulator", value: "KNS_SecLawRegulator" },
-    { name: "KNS_DocumentSecondaryLaw", value: "KNS_DocumentSecondaryLaw" },
+    { name: "KNS_SecToSecBinding", targetType: "KNS_SecToSecBinding" },
+    { name: "KNS_SecToSecBinding_Parent", targetType: "KNS_SecToSecBinding" },
+    { name: "KNS_Committee", targetType: "KNS_Committee" },
+    { name: "KNS_Status", targetType: "KNS_Status" },
+    {
+      name: "KNS_SecLawAuthorizingLaw",
+      targetType: "KNS_SecLawAuthorizingLaw",
+    },
+    { name: "KNS_SecLawRegulator", targetType: "KNS_SecLawRegulator" },
+    {
+      name: "KNS_DocumentSecondaryLaw",
+      targetType: "KNS_DocumentSecondaryLaw",
+    },
   ],
   KNS_SecToSecBinding: [
-    { name: "KNS_SecondaryLaw", value: "KNS_SecondaryLaw" },
-    { name: "KNS_SecondaryLaw_Parent", value: "KNS_SecondaryLaw_Parent" },
+    { name: "KNS_SecondaryLaw", targetType: "KNS_SecondaryLaw" },
+    { name: "KNS_SecondaryLaw_Parent", targetType: "KNS_SecondaryLaw" },
   ],
   KNS_Status: [
-    { name: "KNS_Agenda", value: "KNS_Agenda" },
-    { name: "KNS_Bill", value: "KNS_Bill" },
-    { name: "KNS_CmtSessionItem", value: "KNS_CmtSessionItem" },
-    { name: "KNS_CommitteeSession", value: "KNS_CommitteeSession" },
-    { name: "KNS_PlmSessionItem", value: "KNS_PlmSessionItem" },
-    { name: "KNS_Query", value: "KNS_Query" },
-    { name: "KNS_SecondaryLaw", value: "KNS_SecondaryLaw" },
+    { name: "KNS_Agenda", targetType: "KNS_Agenda" },
+    { name: "KNS_Bill", targetType: "KNS_Bill" },
+    { name: "KNS_CmtSessionItem", targetType: "KNS_CmtSessionItem" },
+    { name: "KNS_CommitteeSession", targetType: "KNS_CommitteeSession" },
+    { name: "KNS_PlmSessionItem", targetType: "KNS_PlmSessionItem" },
+    { name: "KNS_Query", targetType: "KNS_Query" },
+    { name: "KNS_SecondaryLaw", targetType: "KNS_SecondaryLaw" },
   ],
-  KNS_PlenumVote: [{ name: "KNS_PlenumSession", value: "KNS_PlenumSession" }],
-  KNS_PlenumVoteResult: [{ name: "KNS_Person", value: "KNS_Person" }],
-  __GENERAL__: [
-    { name: "Expand All (Caution!)", value: "*,*,*" }, // Placeholder, actual OData syntax for all is complex/service-specific
+  KNS_PlenumVote: [
+    { name: "KNS_PlenumSession", targetType: "KNS_PlenumSession" },
   ],
+  KNS_PlenumVoteResult: [{ name: "KNS_Person", targetType: "KNS_Person" }],
 };
